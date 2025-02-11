@@ -1,0 +1,259 @@
+---
+title: "Intro2MordernStats - Day1"
+author: "Wenbin Guo"
+date: "2025-02-11"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+if (!requireNamespace("tidyverse", quietly = TRUE)) {
+  install.packages("tidyverse")
+}
+if (!requireNamespace("DescTools", quietly = TRUE)) {
+  install.packages("DescTools")
+}
+```
+
+# Introduction
+This is introduction to modern statistics Day1. We will cover basic concepts, probability, distributions, and descriptive statistics.
+
+
+# Probability
+```{r}
+# Monte Carlo Simulation to Estimate Pi
+set.seed(123)  # For reproducibility
+
+n <- 1000  # Number of random points
+x <- runif(n)  # Generate n random x-coordinates between 0 and 1
+y <- runif(n)  # Generate n random y-coordinates between 0 and 1
+
+# Check if the points are inside the unit circle (radius = 1)
+inside_circle <- (x^2 + y^2) <= 1
+
+# Estimate Pi
+pi_estimate <- 4 * sum(inside_circle) / n
+cat("Estimated Pi:", pi_estimate, "\n")
+
+# Plot the points
+plot(x, y, col = ifelse(inside_circle, "red", "blue"), pch = 20, asp = 1,
+     main = bquote(n == .(n) ~ "; " ~ pi %~~% .(round(pi_estimate, 4))),
+     xlab = "", ylab = "",
+     xlim = c(0,1), ylim = c(0,1))
+```
+
+TODO: plot how the estimate of Pi converges as n increases, note you should be able to 
+```{r}
+
+```
+
+
+
+# Distributions
+## discrete distributions
+### uniform
+```{r}
+# Uniform Distribution (a = 1, b = 6)
+x <- 1:6
+y <- rep(1/6, 6)
+
+plot(x, y, type = "h", lwd = 2, col = "blue", main = "PMF of Uniform Distribution", 
+     xlab = "x", ylab = "P(X = x)")
+points(x, y, pch = 16, col = "blue")
+```
+
+### bernoulli
+```{r}
+# Bernoulli Distribution (p = 0.3)
+x <- c(0, 1)
+y <- dbinom(x, size = 1, prob = 0.3)
+
+plot(x, y, type = "h", lwd = 2, col = "blue", main = "PMF of Bernoulli Distribution", 
+     xlab = "x", ylab = "P(X = x)", xlim = c(-0.5, 1.5))
+points(x, y, pch = 16, col = "blue")
+```
+
+### binomial
+```{r}
+# Binomial Distribution (n = 10, p = 0.5)
+x <- 0:10
+y <- dbinom(x, size = 10, prob = 0.5)
+
+plot(x, y, type = "h", lwd = 2, col = "blue", main = "PMF of Binomial Distribution", 
+     xlab = "x", ylab = "P(X = x)")
+points(x, y, pch = 16, col = "blue")
+```
+
+### negative binomial
+```{r}
+# Negative Binomial Distribution (r = 5, p = 0.4)
+x <- 0:15
+y <- dnbinom(x, size = 5, prob = 0.4)
+
+plot(x, y, type = "h", lwd = 2, col = "blue", main = "PMF of Negative Binomial Distribution", 
+     xlab = "x", ylab = "P(X = x)")
+points(x, y, pch = 16, col = "blue")
+```
+
+
+### geometric
+```{r}
+# Geometric Distribution (p = 0.3)
+x <- 1:15
+y <- dgeom(x - 1, prob = 0.3)
+
+plot(x, y, type = "h", lwd = 2, col = "blue", main = "PMF of Geometric Distribution", 
+     xlab = "x", ylab = "P(X = x)")
+points(x, y, pch = 16, col = "blue")
+```
+
+### hypergeometric
+```{r}
+# Hypergeometric Distribution (N = 20, K = 10, n = 5)
+x <- 0:5
+y <- dhyper(x, m = 10, n = 10, k = 5)
+
+plot(x, y, type = "h", lwd = 2, col = "blue", main = "PMF of Hypergeometric Distribution", 
+     xlab = "x", ylab = "P(X = x)")
+points(x, y, pch = 16, col = "blue")
+```
+
+
+### poisson
+```{r}
+# Poisson Distribution (lambda = 3)
+x <- 0:15
+y <- dpois(x, lambda = 3)
+
+plot(x, y, type = "h", lwd = 2, col = "blue", main = "PMF of Poisson Distribution", 
+     xlab = "x", ylab = "P(X = x)")
+points(x, y, pch = 16, col = "blue")
+```
+
+## continuous
+### uniform
+```{r}
+# Continuous Uniform Distribution (a = 0, b = 1)
+x <- seq(0, 1, length.out = 100)
+y <- dunif(x, min = 0, max = 1)
+
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "PDF of Continuous Uniform Distribution", 
+     xlab = "x", ylab = "f(x)")
+```
+
+
+### normal
+```{r}
+# Normal Distribution (mean = 0, sd = 1)
+x <- seq(-4, 4, length.out = 200)
+y <- dnorm(x, mean = 0, sd = 1)
+
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "PDF of Normal Distribution", 
+     xlab = "x", ylab = "f(x)")
+```
+
+
+### t-distribution
+```{r}
+# t-Distribution (df = 5)
+x <- seq(-5, 5, length.out = 200)
+y <- dt(x, df = 5)
+
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "PDF of t-Distribution", 
+     xlab = "x", ylab = "f(x)")
+```
+
+TODO:
+plot the $t$-distribution with different degrees of freedom (df = 1, 2, 5, 10, 20, 30, 50, 100) on the same plot
+```{r}
+
+```
+
+plot the $t$-distribution along with the standard normal distribution on the same plot, what did you find?
+```{r}
+
+```
+
+
+
+### chi-square
+```{r}
+# Chi-Square Distribution (df = 3)
+x <- seq(0, 10, length.out = 200)
+y <- dchisq(x, df = 3)
+
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "PDF of Chi-Square Distribution", 
+     xlab = "x", ylab = "f(x)")
+```
+
+### F-distribution
+```{r}
+# F-Distribution (d1 = 5, d2 = 10)
+x <- seq(0, 5, length.out = 200)
+y <- df(x, df1 = 5, df2 = 10)
+
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "PDF of F-Distribution", 
+     xlab = "x", ylab = "f(x)")
+```
+
+
+### exponential
+```{r}
+# Exponential Distribution (rate = 1)
+x <- seq(0, 5, length.out = 200)
+y <- dexp(x, rate = 1)
+
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "PDF of Exponential Distribution", 
+     xlab = "x", ylab = "f(x)")
+```
+
+
+### beta
+```{r}
+# Beta Distribution (shape1 = 2, shape2 = 5)
+x <- seq(0, 1, length.out = 200)
+y <- dbeta(x, shape1 = 2, shape2 = 5)
+
+plot(x, y, type = "l", lwd = 2, col = "blue", main = "PDF of Beta Distribution", 
+     xlab = "x", ylab = "f(x)")
+
+```
+
+
+
+# Descriptive Statistics
+## Measures of Central Tendency
+```{r}
+my_vec = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 5)
+
+mean(my_vec)  # Calculate the mean of a vector
+median(my_vec)  # Calculate the median of a vector
+
+
+library(DescTools)
+Mode(my_vec)  # Calculate the mode of a vector
+```
+
+## Measures of Dispersion
+```{r}
+var(my_vec)  # Calculate the variance of a vector
+sd(my_vec)   # Calculate the standard deviation of a vector
+range(my_vec)# Calculate the range of a vector
+quantile(my_vec)  # Calculate the quartiles of a vector
+IQR(my_vec)  # Calculate the interquartile range of a vector
+```
+
+## visualize distribution
+### histogram
+```{r}
+hist(my_vec)  # Create a histogram of a vector
+```
+
+### boxplot
+```{r}
+boxplot(my_vec)  # Create a boxplot of a vector
+```
+
+
