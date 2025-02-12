@@ -1,0 +1,487 @@
+---
+title: "Introduction to Modern Statistics - Day2"
+author: "Wenbin Guo"
+date: "2025-02-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+
+# Introduciton
+This is introduction to modern statistics Day2. We will cover hypothesis testing, permutation test, bootstrap, multiple testing, etc.
+
+
+
+# Population & samples
+## population
+```{r}
+# Load required library
+library(ggplot2)
+
+# Generate data for a standard normal distribution
+x_vals <- seq(-4, 4, by = 0.01)
+pdf_vals <- dnorm(x_vals, mean = 0, sd = 1)
+
+# Create the plot
+ggplot(data.frame(x = x_vals, y = pdf_vals), aes(x = x, y = y)) +
+    geom_line(color = "blue", size = 1) +
+    labs(title = "Probability Density Function of Standard Gaussian", x = "x", y = "Density") +
+    annotate("text", x = 3, y = 0.35, label = "Mean = 0", color = "red", size = 5) +
+    annotate("text", x = 3, y = 0.3, label = "Variance = 1", color = "red", size = 5) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "darkred", size = 0.8) +
+    theme_minimal(base_size = 14)
+
+```
+
+## samples
+```{r}
+set.seed(42)  # For reproducibility
+n_samples <- 100
+samples <- rnorm(n_samples, mean = 0, sd = 1)
+sample_mean <- mean(samples)
+sample_variance <- var(samples)
+
+# Create the histogram with sample mean and variance annotations
+ggplot(data.frame(x = samples), aes(x = x)) +
+  geom_histogram(aes(y = ..density..), bins = 15, fill = "skyblue", color = "black", alpha = 0.7) +
+  #stat_function(fun = dnorm, args = list(mean = 0, sd = 1), color = "blue", size = 1) +
+  geom_vline(xintercept = sample_mean, linetype = "dashed", color = "red", size = 0.8) +
+  annotate("text", x = sample_mean + 0.3, y = 0.35, label = paste0("Sample Mean = ", round(sample_mean, 2)), color = "red", size = 5, hjust = 0) +
+  annotate("text", x = sample_mean + 0.3, y = 0.3, label = paste0("Sample Variance = ", round(sample_variance, 2)), color = "red", size = 5, hjust = 0) +
+  labs(
+    title = "Histogram of 100 Samples from Standard Gaussian",
+    x = "x",
+    y = "Density"
+  ) +
+  theme_minimal(base_size = 14)
+```
+
+
+TODO: change the random seed, or change the number of samples, see how the histogram vary
+
+
+# Theorem examples
+## Law of Large Numbers
+```{r}
+# Law of Large Numbers (LLN)
+set.seed(123)  # For reproducibility
+n <- 100000  # Number of simulations
+rolls <- sample(1:6, size = n, replace = TRUE)  # Simulate rolling a die
+sample_means <- cumsum(rolls) / (1:n)  # Compute cumulative mean
+
+# Plot the convergence of the sample mean
+plot(1:n, sample_means, type = "l", col = "blue", 
+     main = "Law of Large Numbers",
+     xlab = "Number of Rolls", ylab = "Sample Mean")
+abline(h = 3.5, col = "red", lwd = 2, lty = 2)  # Population mean (expected value)
+legend("topright", legend = "Population Mean = 3.5", col = "red", lty = 2)
+```
+
+## Central Limit Theorem
+```{r}
+set.seed(123)  # For reproducibility
+
+# Parameters
+n <- 30            # Sample size for each sample
+num_samples <- 5000  # Number of samples
+dist_function <- function(n) rexp(n, rate = 1)  # Change this to your desired distribution
+
+# Generate sample means
+sample_means <- replicate(num_samples, mean(dist_function(n)))
+
+# Plot the histogram of the sample means
+hist(sample_means, breaks = 40, prob = TRUE, col = "lightblue", 
+     main = "Central Limit Theorem",
+     xlab = "Sample Means")
+
+# Overlay normal distribution curve
+curve(dnorm(x, mean = mean(sample_means), sd = sd(sample_means)), 
+      col = "red", lwd = 2, add = TRUE)
+
+legend("topright", legend = "Normal Distribution", col = "red", lty = 1)
+```
+
+TODO: change the data generating distribution, see how the histogram change?
+
+
+# Hypothesis testing
+## example
+```{r}
+# Load library
+library(ggplot2)
+
+# Create a sequence of values for x-axis
+x_vals <- seq(-4, 4, length.out = 1000)
+
+# Calculate PDF for two normal distributions
+pdf1 <- dnorm(x_vals, mean = 0, sd = 1)      # Group 1: N(0, 1)
+pdf2 <- dnorm(x_vals, mean = 0.2, sd = 1)    # Group 2: N(0.2, 1)
+
+# Create a data frame for plotting
+pdf_data <- data.frame(
+  x = rep(x_vals, 2),
+  y = c(pdf1, pdf2),
+  group = rep(c("Group 1", "Group 2"), each = length(x_vals))
+)
+
+# Plot density curves
+ggplot(pdf_data, aes(x = x, y = y, color = group)) +
+  geom_line(size = 1) +
+  labs(
+    title = "PDF of Two Gaussian Distributions",
+    x = "x",
+    y = "Density",
+    caption = "Null hypothesis: Same mean\nAlternative hypothesis: Different means"
+  ) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme_minimal()
+```
+
+```{r}
+# Load library
+library(ggplot2)
+
+# Generate 50 samples from each group
+set.seed(42)
+samples_group1 <- rnorm(50, mean = 0, sd = 1)      # Group 1: N(0, 1)
+samples_group2 <- rnorm(50, mean = 0.2, sd = 1)    # Group 2: N(0.2, 1)
+
+# Combine into a data frame
+sample_data <- data.frame(
+  value = c(samples_group1, samples_group2),
+  group = rep(c("Group 1", "Group 2"), each = 50)
+)
+
+# Calculate sample means for annotation
+mean_group1 <- mean(samples_group1)
+mean_group2 <- mean(samples_group2)
+
+# Plot histogram
+ggplot(sample_data, aes(x = value, fill = group)) +
+  geom_histogram(aes(y = ..density..), bins = 15, position = "identity", alpha = 0.5) +
+  geom_vline(aes(xintercept = mean_group1), color = "blue", linetype = "dashed", size = 1, show.legend = FALSE) +
+  geom_vline(aes(xintercept = mean_group2), color = "red", linetype = "dashed", size = 1, show.legend = FALSE) +
+  labs(
+    title = "Histogram of 50 Samples from Two Gaussian Distributions",
+    x = "Value",
+    y = "Density",
+    caption = "Dashed lines indicate sample means for Group 1 (blue) and Group 2 (red)"
+  ) +
+  scale_fill_manual(values = c("blue", "red")) +
+  theme_minimal()
+```
+
+```{r}
+t.test(samples_group1, samples_group2)
+```
+
+
+
+
+## Parametric tests
+### One-sample z-test
+Goal: Test if the sample mean is equal to a specified value when the population variance is known.
+```{r}
+library(BSDA)
+set.seed(123)
+data_one_sample <- rnorm(100, mean = 50, sd = 10)  # Generate sample data
+z.test(data_one_sample, mu = 50, sigma.x = 10)  # Test if mean is equal to 50
+```
+
+### Two-sample z-test
+Goal: Test if two independent samples have the same population mean.
+```{r}
+set.seed(123)
+group1 <- rnorm(100, mean = 50, sd = 10)
+group2 <- rnorm(100, mean = 52, sd = 10)
+
+z.test(group1, group2, sigma.x = 10, sigma.y = 10)  # Test if the means are equal
+```
+
+
+### One-sample t-test
+Goal: Test whether the mean of a single sample is equal to a specified value (e.g., mean = 5).
+```{r}
+set.seed(123)
+data_one_sample <- rnorm(30, mean = 5, sd = 2)  # Generate 30 random values with mean 5 and sd 2
+t.test(data_one_sample, mu = 5)  # Test if the mean is equal to 5
+```
+
+### Two-sample t-test
+Goal: Compare the means of two independent samples.
+```{r}
+set.seed(123)
+group1 <- rnorm(30, mean = 5, sd = 2)
+group2 <- rnorm(30, mean = 6, sd = 2)
+t.test(group1, group2) 
+```
+
+```{r}
+set.seed(123)
+group1 <- rnorm(30, mean = 5, sd = 2)
+group2 <- rnorm(30, mean = 6, sd = 2)
+t.test(group1, group2, alternative = "less") 
+```
+
+
+### Paired t-test
+Goal: Compare the means of two related samples (before and after measurements).
+```{r}
+set.seed(123)
+before <- rnorm(30, mean = 5, sd = 2)
+after <- before + rnorm(30, mean = 0.5, sd = 1)
+t.test(before, after, paired = TRUE)  # Test for differences between paired samples
+```
+
+### ANOVA
+Goal: Test for differences in means across multiple groups.
+```{r}
+set.seed(123)
+group <- factor(rep(1:3, each = 10))
+values <- c(rnorm(10, mean = 5), rnorm(10, mean = 6), rnorm(10, mean = 7))
+anova_result <- aov(values ~ group)
+summary(anova_result)
+```
+
+
+### F-test
+Goal: Compare the variances of two independent samples. Useful for checking the assumption of equal variances in a two-sample t-test.
+```{r}
+set.seed(123)
+group1 <- rnorm(30, mean = 5, sd = 1)
+group2 <- rnorm(30, mean = 5, sd = 3)
+
+var.test(group1, group2)  # Test for equal variances
+```
+
+
+### Chi-square test
+Goal: Test for the independence of two categorical variables.
+```{r}
+set.seed(123)
+observed <- matrix(c(50, 30, 20, 40), nrow = 2)  # Create a 2x2 contingency table
+print(observed)
+chisq.test(observed)  # Test for independence between rows and columns
+```
+
+
+## Non-parametric tests
+### Mann-Whitney U test
+Goal: Compare two independent samples without assuming normality.  The null hypothesis is that the distributions of the two groups are identical. It’s a non-parametric alternative to the two-sample t-test.
+```{r}
+set.seed(123)
+group1 <- rnorm(30, mean = 5, sd = 2)
+group2 <- rnorm(30, mean = 6, sd = 2)
+wilcox.test(group1, group2)
+```
+
+### Kruskal-Wallis test
+Goal: Test for differences in medians across multiple groups without assuming normality.
+```{r}
+set.seed(123)
+group <- factor(rep(1:3, each = 10))
+values <- c(rnorm(10, mean = 5), rnorm(10, mean = 6), rnorm(10, mean = 7))
+kruskal.test(values ~ group)
+```
+
+
+### Kolmogorov-Smirnov Test
+Goal: Compare a sample with a reference distribution or compare two samples. Useful for checking if two distributions differ significantly.
+```{r}
+set.seed(123)
+sample1 <- rnorm(50)
+sample2 <- rnorm(50, mean = 1)
+ks.test(sample1, sample2)  # Two-sample test
+```
+
+## Other commonly-used test
+###  Shapiro-Wilk Test
+Goal: Test if a sample comes from a normal distribution. Used to check the normality assumption before applying parametric tests like the t-test or ANOVA.
+```{r}
+set.seed(123)
+data_normal <- rnorm(50)
+shapiro.test(data_normal)
+```
+
+
+
+
+## p-value distribution
+### histogram
+```{r}
+p_vec = runif(1000)
+
+hist(p_vec, breaks = 20, main = "Histogram of p-values", xlab = "p-value", col = "skyblue")
+```
+
+### QQ plot
+```{r}
+library(qqman)
+
+qq(p_vec, main = "QQ Plot of p-values", col = "skyblue")
+```
+
+
+# Permutation test and bootstrap
+## Permutation test
+```{r}
+library(openintro)
+
+data("sex_discrimination")
+table(sex_discrimination$sex, sex_discrimination$decision)
+```
+
+```{r}
+# Calculate the observed difference in promotion rates
+obs_diff <- sex_discrimination %>%
+  group_by(rev(sex)) %>% 
+  summarise(promotion_rate = mean(decision == "promoted")) %>%
+  summarise(diff = diff(promotion_rate)) %>%
+  pull(diff)
+
+# Permutation test
+set.seed(42)  # for reproducibility
+n_perm <- 1000
+perm_diffs <- replicate(n_perm, {
+  perm_data <- sex_discrimination %>%
+    mutate(decision = sample(decision))  # Permute the decision variable
+  perm_diff <- perm_data %>%
+    group_by(rev(sex)) %>%
+    summarise(promotion_rate = mean(decision == "promoted")) %>%
+    summarise(diff = diff(promotion_rate)) %>%
+    pull(diff)
+  perm_diff
+})
+
+# Calculate p-value
+p_value <- mean(abs(perm_diffs) >= abs(obs_diff))
+
+# Visualize the permutation distribution
+hist(perm_diffs, breaks = 50, main = "Permutation Test Distribution",
+     xlab = "Difference in Promotion Rates", border = "blue")
+abline(v = obs_diff, col = "red", lwd = 2, lty = 2)
+text(obs_diff, max(table(cut(perm_diffs, breaks = 50))), 
+     paste("Observed Diff =", round(obs_diff, 3)), pos = 4, col = "red")
+
+# Print observed difference and p-value
+cat("Observed Difference in Promotion Rates:", obs_diff, "\n")
+cat("P-value:", p_value, "\n")
+```
+
+
+
+## Bootstrap
+```{r}
+data("cpr")
+
+table(cpr$group, cpr$outcome)
+```
+
+```{r}
+# Calculate observed survival rates for each group
+observed_diff <- cpr %>%
+  group_by(group) %>%
+  summarise(survival_rate = mean(outcome == "survived")) %>%
+  summarise(diff = diff(survival_rate)) %>%  # difference: treatment - control
+  pull(diff)
+
+# Bootstrap function
+set.seed(123)  # for reproducibility
+n_boot <- 1000
+bootstrap_diffs <- replicate(n_boot, {
+  boot_data <- cpr %>%
+    sample_frac(replace = TRUE)  # Resample with replacement
+  boot_diff <- boot_data %>%
+    group_by(group) %>%
+    summarise(survival_rate = mean(outcome == "survived")) %>%
+    summarise(diff = diff(survival_rate)) %>%
+    pull(diff)
+  boot_diff
+})
+
+# Calculate 95% confidence interval (percentile method)
+ci_lower <- quantile(bootstrap_diffs, 0.025)
+ci_upper <- quantile(bootstrap_diffs, 0.975)
+
+# Print results
+cat("Observed Difference in Survival Rates:", observed_diff, "\n")
+cat("95% Confidence Interval: [", ci_lower, ",", ci_upper, "]\n")
+
+# Visualize the bootstrap distribution
+hist(bootstrap_diffs, breaks = 50, main = "Bootstrap Distribution of Survival Rate Difference",
+     xlab = "Difference in Survival Rates (Treatment - Control)", border = "blue")
+abline(v = c(ci_lower, ci_upper), col = "red", lwd = 2, lty = 2)
+abline(v = observed_diff, col = "darkgreen", lwd = 2)
+text(observed_diff, max(table(cut(bootstrap_diffs, breaks = 50))), 
+     paste("Observed Diff =", round(observed_diff, 3)), pos = 4, col = "darkgreen")
+```
+
+
+
+# Multiple testing
+```{r}
+# Set seed for reproducibility
+set.seed(42)
+
+# Generate synthetic data
+n_genes <- 1000
+n_samples <- 10
+n_control <- n_samples / 2
+n_disease <- n_samples / 2
+
+# Generate control data
+data_control <- matrix(rnorm(n_genes * n_control, mean = 5, sd = 1), nrow = n_genes)
+
+# Copy control data for disease group and add an effect to 10% of genes
+n_diff_genes <- ceiling(0.10 * n_genes)
+data_disease <- data_control
+data_disease[1:n_diff_genes, ] <- data_disease[1:n_diff_genes, ] + 3  # Effect size
+
+
+# Combine into one dataset
+data <- cbind(data_control, data_disease)
+colnames(data) <- paste0("Sample_", 1:n_samples)
+rownames(data) <- paste0("Gene_", 1:n_genes)
+true_diff_genes = rownames(data)[1:n_diff_genes]
+
+# Perform t-tests for each gene
+pvalues <- apply(data, 1, function(row) {
+  t.test(row[1:n_control], row[(n_control + 1):n_samples], var.equal = FALSE)$p.value
+})
+```
+
+
+## Bonferroni correction
+```{r}
+bonferroni_corrected <- p.adjust(pvalues, method = "bonferroni")
+head(bonferroni_corrected)
+```
+
+
+## False discovery rate
+```{r}
+fdr_corrected <- p.adjust(pvalues, method = "fdr")
+head(fdr_corrected)
+```
+
+## compare
+```{r}
+bonforoni_sig_genes = rownames(data)[bonferroni_corrected < 0.05]
+fdr_sig_genes = rownames(data)[fdr_corrected < 0.05]
+```
+
+```{r}
+bonforoni_sig_genes
+length(bonforoni_sig_genes)
+```
+
+```{r}
+fdr_sig_genes
+length(fdr_sig_genes)
+```
+
