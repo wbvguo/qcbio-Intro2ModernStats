@@ -17,7 +17,8 @@ if (!requireNamespace("DescTools", quietly = TRUE)) {
 }
 ```
 
-# Introduction
+s
+# Day 1: Introduction to Modern Statistics -- Introduction to probability and stats
 This is introduction to modern statistics Day1. We will cover basic concepts, probability, distributions, and descriptive statistics.
 
 

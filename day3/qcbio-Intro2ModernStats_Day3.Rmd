@@ -1,0 +1,274 @@
+---
+title: "Introduction to Modern Statistics - Day3"
+author: "Wenbin Guo"
+date: "2025-02-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Day 3: Introduction to Modern Statistics -- Modeling
+
+
+# Likelihood
+## Likelihood calculation
+```{r}
+# flip a coin 10 times, all of them are heads (denote as 1), none of them are tails (denote as 0)
+# denote the likelihood of the data given the parameter as L(θ|data)
+outcome = rep(1, 10)
+
+# likelihood of the data given the parameter θ
+likelihood = function(theta, data){
+  return(prod(theta^data * (1-theta)^(1-data)))
+}
+
+# likelihood of the data given the parameter θ
+likelihood(0.5, outcome)
+```
+
+TODO: try different values of θ, and find the value of θ that maximizes the likelihood of the data
+
+
+## likelihood ratio test
+```{r}
+# Simulate data from a binomial distribution
+set.seed(123)
+n <- 100  # Number of trials
+p_true <- 0.7  # True success probability
+data <- rbinom(n, size = 1, prob = p_true)  # Generate n Bernoulli trials
+
+# Define the null hypothesis: p = 0.5 (fixed)
+log_likelihood_null <- sum(dbinom(data, size = 1, prob = 0.5, log = TRUE))
+
+# Define the alternative hypothesis: p is estimated from the data
+p_hat <- mean(data)  # Maximum likelihood estimate of p
+log_likelihood_alt <- sum(dbinom(data, size = 1, prob = p_hat, log = TRUE))
+
+# Perform the likelihood ratio test
+test_statistic <- -2 * (log_likelihood_null - log_likelihood_alt)
+p_value <- 1 - pchisq(test_statistic, df = 1)
+
+# Print the result
+cat("Test Statistic:", test_statistic, "\n")
+cat("p-value:", p_value, "\n")
+
+# Conclusion
+if (p_value < 0.05) {
+  cat("Reject the null hypothesis: p is significantly different from 0.5\n")
+} else {
+  cat("Fail to reject the null hypothesis: no significant difference from 0.5\n")
+}
+```
+
+
+
+# Regression
+## Simple Linear Regression
+```{r}
+data(mtcars)
+# Predict miles per gallon (mpg) using weight (wt)
+lm_simple <- lm(mpg ~ wt, data = mtcars)
+
+
+# Plot prediction using ggplot2
+mtcars$pred_mpg <- predict(lm_simple)
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  geom_line(aes(y = pred_mpg), color = "blue") +
+  labs(title = "Simple Linear Regression: MPG vs Weight", x = "Weight", y = "MPG")
+
+# inference
+summary(lm_simple)
+```
+
+
+## Mulitple Linear Regression
+```{r}
+## Multiple Linear Regression (mtcars dataset)
+# Predict mpg using weight (wt), horsepower (hp), and number of cylinders (cyl)
+lm_multiple <- lm(mpg ~ wt + hp + cyl, data = mtcars)
+
+
+# Plot prediction (actual vs predicted values)
+mtcars$pred_mpg_multiple <- predict(lm_multiple)
+ggplot(mtcars, aes(x = pred_mpg_multiple, y = mpg)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Multiple Linear Regression: Predicted vs Actual MPG", x = "Predicted MPG", y = "Actual MPG")
+
+
+# Statistical tests for multiple linear regression
+summary(lm_multiple)
+```
+
+
+## Logistic Regression
+```{r}
+# Predict whether a species is "setosa" based on sepal and petal measurements
+iris_binary <- iris %>% mutate(is_setosa = ifelse(Species == "setosa", 1, 0))
+glm_logistic <- glm(is_setosa ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width,
+                    family = binomial, data = iris_binary)
+
+
+# Plot logistic regression prediction (Predicted probability vs actual response)
+iris_binary$pred_prob <- predict(glm_logistic, type = "response")
+ggplot(iris_binary, aes(x = pred_prob, y = is_setosa, color = Species)) +
+  geom_jitter(height = 0.05, alpha = 0.6) +
+  geom_smooth(method = "loess", se = FALSE, color = "blue") +
+  labs(title = "Logistic Regression: Predicted Probability vs Actual", x = "Predicted Probability", y = "Actual (is_setosa)")
+
+
+# Statistical tests for logistic regression
+summary(glm_logistic)
+
+glm_logistic_reduced <- glm(is_setosa ~ Sepal.Length + Petal.Length, family = binomial, data = iris_binary)
+lr_test <- anova(glm_logistic_reduced, glm_logistic, test = "Chisq")
+print(lr_test)
+```
+
+
+
+## Local Regression
+```{r}
+data(economics, package="ggplot2")  # load data
+economics$index <- 1:nrow(economics)  # create index variable
+economics <- economics[1:80, ]  # retail 80rows for better graphical understanding
+lmMod <- lm(uempmed ~ index, data=economics)  # linear model
+loessMod10 <- loess(uempmed ~ index, data=economics, span=0.10) # 10% smoothing span
+loessMod25 <- loess(uempmed ~ index, data=economics, span=0.25) # 25% smoothing span
+loessMod50 <- loess(uempmed ~ index, data=economics, span=0.50) # 50% smoothing span
+```
+
+
+```{r}
+# get smoothed output
+lmMod_pred <- predict(lmMod)
+smoothed10 <- predict(loessMod10) 
+smoothed25 <- predict(loessMod25) 
+smoothed50 <- predict(loessMod50) 
+```
+
+```{r}
+# Plot it
+plot(economics$uempmed, x=economics$date, type="l", main="Loess Smoothing and Prediction", xlab="Date", ylab="Unemployment (Median)")
+lines(lmMod_pred, x=economics$date, col="black")
+lines(smoothed10, x=economics$date, col="red")
+lines(smoothed25, x=economics$date, col="green")
+lines(smoothed50, x=economics$date, col="blue")
+```
+
+Question: how to find the best window size for local regression?
+
+
+
+
+## Penalized Regression
+```{r}
+# Load necessary library
+library(glmnet)  # For penalized regression
+
+# Generate synthetic data with n = 30 samples and p = 100 features (n < p)
+set.seed(123)
+n <- 30
+p <- 100
+X <- matrix(rnorm(n * p), nrow = n, ncol = p)  # Design matrix with 100 features
+beta_true <- c(rep(2, 5), rep(0, p - 5))  # Only the first 5 features have a true effect
+y <- X %*% beta_true + rnorm(n, 0, 1)  # Response variable with some noise
+
+# Convert to data frame for lm()
+data_lm <- as.data.frame(cbind(y, X))
+colnames(data_lm) <- c("y", paste0("X", 1:p))
+```
+
+```{r}
+# Attempt to fit a linear model with lm()
+lm_fit <- lm(y ~ ., data = data_lm)
+summary(lm_fit)
+```
+
+```{r}
+# Use Lasso regression (glmnet) to handle the n < p problem
+lasso_fit <- glmnet(X, y, alpha = 1)  # alpha = 1 for Lasso
+plot(lasso_fit, xvar = "lambda", label = TRUE)
+```
+
+```{r}
+# Get coefficients at the best lambda using cross-validation
+cv_lasso <- cv.glmnet(X, y, alpha = 1, nfolds = 10)
+best_lambda <- cv_lasso$lambda.min
+lasso_coef <- coef(cv_lasso, s = "lambda.min")
+print(paste("Best lambda:", round(best_lambda, 4)))
+print("Lasso coefficients at best lambda:")
+print(lasso_coef)
+```
+
+
+
+
+# Model selection
+## AIC
+```{r}
+# Compare models using AIC
+lm_model1 <- lm(mpg ~ wt + hp, data = mtcars)
+lm_model2 <- lm(mpg ~ wt + hp + cyl, data = mtcars)
+AIC(lm_model1, lm_model2)
+```
+
+## BIC
+```{r}
+BIC(lm_model1, lm_model2)
+```
+
+
+
+## Cross-validation
+```{r}
+set.seed(123)  # For reproducibility
+k <- 5  # Number of folds
+Boston <- Boston  # Use the MASS::Boston dataset
+
+# Split data into k folds
+folds <- sample(1:k, nrow(Boston), replace = TRUE)
+
+# Function to calculate Mean Squared Error (MSE)
+mse <- function(actual, predicted) {
+  mean((actual - predicted)^2)
+}
+
+# Initialize vectors to store MSE for each fold
+mse_model1 <- numeric(k)
+mse_model2 <- numeric(k)
+
+# Cross-validation loop
+for (i in 1:k) {
+  train_data <- Boston[folds != i, ]
+  test_data <- Boston[folds == i, ]
+  
+  # Model 1: Linear regression with 'lstat' and 'rm'
+  model1 <- lm(medv ~ lstat + rm, data = train_data)
+  pred_model1 <- predict(model1, newdata = test_data)
+  mse_model1[i] <- mse(test_data$medv, pred_model1)
+  
+  # Model 2: Linear regression with 'lstat', 'rm', and 'age'
+  model2 <- lm(medv ~ lstat + rm + age, data = train_data)
+  pred_model2 <- predict(model2, newdata = test_data)
+  mse_model2[i] <- mse(test_data$medv, pred_model2)
+}
+
+# Calculate average MSE for each model
+avg_mse_model1 <- mean(mse_model1)
+avg_mse_model2 <- mean(mse_model2)
+
+# Print results
+cat("Average MSE for Model 1 (medv ~ lstat + rm):", avg_mse_model1, "\n")
+cat("Average MSE for Model 2 (medv ~ lstat + rm + age):", avg_mse_model2, "\n")
+
+# Select the model with the lower MSE
+if (avg_mse_model1 < avg_mse_model2) {
+  cat("Model 1 is preferred based on cross-validation.\n")
+} else {
+  cat("Model 2 is preferred based on cross-validation.\n")
+}
+```
