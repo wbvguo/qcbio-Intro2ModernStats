@@ -3,7 +3,7 @@ Author: Wenbin Guo
 Last Update: 2025 Winter  
 
 ## Description
-This workshop offers a comprehensive introduction to modern statistics, covering fundamental concepts in probability, statistical inference, and modeling. Participants will develop both theoretical understanding and hands-on experience with key statistical techniques, including classical methods (hypothesis testing, regression analysis, etc.) and computational approaches (e.g. permutation tests, bootstrap, etc.). Through interactive exercises and real-world examples, attendees will build robust models, sharpen their data-driven decision-making skills, and gain critical insights into common statistical pitfalls. By the end of the workshop, participants will have a solid foundation in statistical reasoning and practical data analysis skills in R. For registration information, please refer to this [link](https://qcb.ucla.edu/collaboratory/workshops).
+This workshop provides a comprehensive introduction to modern statistics, covering essential concepts in probability, statistical inference, and modeling. Participants will gain both theoretical knowledge and hands-on experience with key statistical techniques, including classical methods (e.g., hypothesis testing, regression analysis) and computational approaches (e.g., permutation tests, bootstrapping). Through interactive exercises and real-world examples, attendees will build a strong foundation in statistical reasoning, enhance their data analysis skills in R, sharpen their mind on data-driven decision-making and gain critical insights into common statistical pitfalls. For registration information, please refer to this [link](https://qcb.ucla.edu/collaboratory/workshops).
 
 
 ## Schedule
