@@ -41,4 +41,4 @@ Participants should have some familiarities with R programming.
 
 <br/>
 
-<img src="./slides/qcb-logo.png" width="215" height="100">
+<img src="./slides/UCLA_QCBio-logo.png" width="215" height="100">
